@@ -32,7 +32,19 @@ if (NODE_ENV !== "production") {
 app.use(helmet());
 app.use(cors());
 
-//
+//  validate authorization header with API token
+app.use(function validateBearerToken(req, res, next) {
+  const apiToken = process.env.API_TOKEN;
+  const authToken = req.get("Authorization");
+
+  if (!authToken || authToken.split(" ")[1] !== apiToken) {
+    return res.status(401).json({ error: "Unauthorized request" });
+  }
+
+  next();
+});
+
+// Create Arrays to store cards and lists
 const cards = [{ id: 1, title: "Task One", content: "This is card one" }];
 const lists = [{ id: 1, header: "List One", cardIds: [1] }];
 
