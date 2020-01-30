@@ -62,7 +62,7 @@ app.get("/card", (req, res) => {
 // GER /card/:id endpoint returns the card with matching ID
 app.get("/card/:id", (req, res) => {
   const { id } = req.params;
-  const cards = cards.find(c => c.id == id);
+  const card = cards.find(c => c.id == id);
 
   // make sure we found a card
   if (!card) {
@@ -76,6 +76,20 @@ app.get("/card/:id", (req, res) => {
 // GET /list endpoint returns array of lists
 app.get("/list", (req, res) => {
   res.json(lists);
+});
+
+// GET /list/id endpoint returns list with matching ID
+app.get("/list/id", (req, res) => {
+  const { id } = req.params;
+  const list = lists.find(li => li.id == id);
+
+  // make user we found a list
+  if (!list) {
+    logger.error(`List with id ${id} not found`);
+    return res.status(404).send("List Not Found");
+  }
+
+  res.json(list);
 });
 
 // error handling middleware gives short response if in production
