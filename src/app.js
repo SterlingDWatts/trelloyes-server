@@ -38,6 +38,7 @@ app.use(function validateBearerToken(req, res, next) {
   const authToken = req.get("Authorization");
 
   if (!authToken || authToken.split(" ")[1] !== apiToken) {
+    logger.error(`Unauthorized request to path: ${req.path}`);
     return res.status(401).json({ error: "Unauthorized request" });
   }
 
@@ -51,6 +52,16 @@ const lists = [{ id: 1, header: "List One", cardIds: [1] }];
 // basic endpoint for app.js
 app.get("/", (req, res) => {
   res.send("Hello, world!");
+});
+
+// GET /card endpoint returns array of cards
+app.get("/card", (req, res) => {
+  res.json(cards);
+});
+
+// GET /list endpoint returns array of lists
+app.get("/list", (req, res) => {
+  res.json(lists);
 });
 
 // error handling middleware gives short response if in production
