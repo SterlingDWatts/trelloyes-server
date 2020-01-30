@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const helmet = require("helmet");
 const cors = require("cors");
 const winston = require("winston");
+const uuid = require("uuid/v4");
 const { NODE_ENV } = require("./config");
 
 // create Express app
@@ -32,6 +33,9 @@ if (NODE_ENV !== "production") {
 app.use(helmet());
 app.use(cors());
 
+// parse JSON data in the body of the request
+app.use(express.json());
+
 //  validate authorization header with API token
 app.use(function validateBearerToken(req, res, next) {
   const apiToken = process.env.API_TOKEN;
@@ -49,7 +53,7 @@ app.use(function validateBearerToken(req, res, next) {
 const cards = [{ id: 1, title: "Task One", content: "This is card one" }];
 const lists = [{ id: 1, header: "List One", cardIds: [1] }];
 
-// basic endpoint for app.js
+// GET / endpoint
 app.get("/", (req, res) => {
   res.send("Hello, world!");
 });
@@ -59,7 +63,7 @@ app.get("/card", (req, res) => {
   res.json(cards);
 });
 
-// GER /card/:id endpoint returns the card with matching ID
+// GET /card/:id endpoint returns the card with matching ID
 app.get("/card/:id", (req, res) => {
   const { id } = req.params;
   const card = cards.find(c => c.id == id);
@@ -71,6 +75,36 @@ app.get("/card/:id", (req, res) => {
   }
 
   res.json(card);
+});
+
+app.post("/card", (req, res) => {
+  const { title, content } = req.body;
+
+  // make sure title and content exist
+  if (!title) {
+    logger.error(`Title is required`);
+    return res.status(400).send("Invalid data");
+  }
+  if (!content) {
+    logger.error(`Content is required`);
+    return res.status(400).send("Invalid data");
+  }
+
+  // get and id
+  const id = uuid();
+  const card = {
+    id,
+    title,
+    content
+  };
+  cards.push(card);
+
+  // log the card creation and send response
+  logger.info(`Card with id ${id} created`);
+  res
+    .status(201)
+    .location(`http://localhost:8000/card/${id}`)
+    .json(card);
 });
 
 // GET /list endpoint returns array of lists
