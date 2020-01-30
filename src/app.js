@@ -3,9 +3,9 @@ const express = require("express");
 const morgan = require("morgan");
 const helmet = require("helmet");
 const cors = require("cors");
-const winston = require("winston");
 const uuid = require("uuid/v4");
 const { NODE_ENV } = require("./config");
+const cardRouter = require("./card/card-router");
 
 // create Express app
 const app = express();
@@ -14,27 +14,9 @@ const app = express();
 const morganOption = NODE_ENV === "production" ? "tiny" : "common";
 app.use(morgan(morganOption));
 
-// log all "info" events with winston
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  transports: [new winston.transports.File({ filename: "info.log" })]
-});
-
-if (NODE_ENV !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  );
-}
-
 // hide sensitive data with 'helmet' and allow cors
 app.use(helmet());
 app.use(cors());
-
-// parse JSON data in the body of the request
-app.use(express.json());
 
 //  validate authorization header with API token
 app.use(function validateBearerToken(req, res, next) {
@@ -49,8 +31,6 @@ app.use(function validateBearerToken(req, res, next) {
   next();
 });
 
-// Create Arrays to store cards and lists
-const cards = [{ id: 1, title: "Task One", content: "This is card one" }];
 const lists = [{ id: 1, header: "List One", cardIds: [1] }];
 
 // GET / endpoint
@@ -58,80 +38,8 @@ app.get("/", (req, res) => {
   res.send("Hello, world!");
 });
 
-// GET /card endpoint returns array of cards
-app.get("/card", (req, res) => {
-  res.json(cards);
-});
-
-// GET /card/:id endpoint returns the card with matching ID
-app.get("/card/:id", (req, res) => {
-  const { id } = req.params;
-  const card = cards.find(c => c.id == id);
-
-  // make sure we found a card
-  if (!card) {
-    logger.error(`Card with id ${id} not found.`);
-    return res.status(400).send("Card Not Found");
-  }
-
-  res.json(card);
-});
-
-// POST /card endpoint
-app.post("/card", (req, res) => {
-  const { title, content } = req.body;
-
-  // make sure title and content exist
-  if (!title) {
-    logger.error(`Title is required`);
-    return res.status(400).send("Invalid data");
-  }
-  if (!content) {
-    logger.error(`Content is required`);
-    return res.status(400).send("Invalid data");
-  }
-
-  // get and id
-  const id = uuid();
-  const card = {
-    id,
-    title,
-    content
-  };
-  cards.push(card);
-
-  // log the card creation and send response
-  logger.info(`Card with id ${id} created`);
-  res
-    .status(201)
-    .location(`http://localhost:8000/card/${id}`)
-    .json(card);
-});
-
-// DELETE /card endpoint
-app.delete("/card/:id", (req, res) => {
-  const { id } = req.params;
-
-  const cardIndex = cards.findIndex(c => c.id == id);
-
-  if (cardIndex === -1) {
-    logger.error(`Card with id ${id} not found.`);
-    return res.status(404).send("Not Found");
-  }
-
-  // remove card from lists
-  // assume cardIds are not duplicated in the cardIds array
-  lists.forEach(list => {
-    const cardIds = list.cardIds.filter(cid => cid !== id);
-    list.cardIds = cardIds;
-  });
-
-  cards.splice(cardIndex, 1);
-
-  logger.info(`Card with id ${id} deleted.`);
-
-  res.status(204).end();
-});
+// /card endpoint
+app.use(cardRouter);
 
 // GET /list endpoint returns array of lists
 app.get("/list", (req, res) => {
